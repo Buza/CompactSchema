@@ -52,7 +52,7 @@ Then add it to your target:
 ### Xcode
 
 1. File → Add Package Dependencies
-2. Enter: `https://github.com/YourUsername/CompactSchema.git`
+2. Enter: `https://github.com/buza/CompactSchema.git`
 3. Add to your target
 
 ## Usage
