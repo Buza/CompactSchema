@@ -2,13 +2,22 @@ import Testing
 @testable import CompactSchema
 
 @CompactSchema
-struct TestUser: Codable {
+public struct TestUser: Codable {
     let id: String
     let name: String
     let email: String?
     let isActive: Bool
     let tags: [String]
     let metadata: [String: String]
+
+    public init(id: String, name: String, email: String?, isActive: Bool, tags: [String], metadata: [String: String]) {
+        self.id = id
+        self.name = name
+        self.email = email
+        self.isActive = isActive
+        self.tags = tags
+        self.metadata = metadata
+    }
 }
 
 @CompactSchema
@@ -103,4 +112,172 @@ func testSchemaAccessibility() async throws {
     #expect(!TestUser.compactSchema.isEmpty)
     #expect(!TestStatus.compactSchema.isEmpty)
     #expect(!TestSimpleEnum.compactSchema.isEmpty)
+}
+
+// MARK: - CompactMethod Tests
+
+struct TestAPI {
+    @CompactMethod
+    public func getUserInfo() async throws -> TestUser {
+        return TestUser(id: "1", name: "Test", email: nil, isActive: true, tags: [], metadata: [:])
+    }
+
+    @CompactMethod
+    public func updateProfile(_ request: UpdateProfileRequest) async throws -> TestUser {
+        return TestUser(id: "1", name: "Updated", email: nil, isActive: true, tags: [], metadata: [:])
+    }
+
+    @CompactMethod
+    public func deleteUser(_ id: String) -> Void {
+        // Implementation
+    }
+
+    @CompactMethod
+    public func syncOperation() -> Bool {
+        return true
+    }
+}
+
+public struct UpdateProfileRequest {
+    let name: String
+    let email: String?
+
+    public init(name: String, email: String?) {
+        self.name = name
+        self.email = email
+    }
+}
+
+@Test("CompactMethod generates correct method signature for async throws function")
+func testAsyncThrowsMethodSignature() async throws {
+    let expectedSignature = "getUserInfo() async throws -> TestUser"
+    #expect(TestAPI.getUserInfoMethod == expectedSignature)
+}
+
+@Test("CompactMethod generates correct method signature with parameters")
+func testMethodSignatureWithParameters() async throws {
+    let expectedSignature = "updateProfile(UpdateProfileRequest) async throws -> TestUser"
+    #expect(TestAPI.updateProfileMethod == expectedSignature)
+}
+
+@Test("CompactMethod generates correct method signature for Void return")
+func testVoidReturnMethodSignature() async throws {
+    let expectedSignature = "deleteUser(String)"
+    #expect(TestAPI.deleteUserMethod == expectedSignature)
+}
+
+@Test("CompactMethod generates correct method signature for sync function")
+func testSyncMethodSignature() async throws {
+    let expectedSignature = "syncOperation() -> Bool"
+    #expect(TestAPI.syncOperationMethod == expectedSignature)
+}
+
+// MARK: - CompactAPIMethods Tests
+
+@CompactAPIMethods
+public class TestBourbonAPI {
+    public func getUserInfo() async throws -> TestUser {
+        return TestUser(id: "1", name: "Test", email: nil, isActive: true, tags: [], metadata: [:])
+    }
+
+    public func updateProfile(_ request: UpdateProfileRequest) async throws -> TestUser {
+        return TestUser(id: "1", name: "Updated", email: nil, isActive: true, tags: [], metadata: [:])
+    }
+
+    public func createCollection(_ request: CreateCollectionRequest) async throws -> Collection {
+        return Collection(id: 1, name: "Test", itemCount: 0)
+    }
+
+    // This should not be included (private)
+    private func internalMethod() {
+        // Private implementation
+    }
+
+    // This should not be included (internal)
+    func internalMethod2() {
+        // Internal implementation
+    }
+}
+
+public struct CreateCollectionRequest {
+    let name: String
+    let description: String?
+
+    public init(name: String, description: String?) {
+        self.name = name
+        self.description = description
+    }
+}
+
+public struct Collection {
+    let id: Int64
+    let name: String
+    let itemCount: Int
+
+    public init(id: Int64, name: String, itemCount: Int) {
+        self.id = id
+        self.name = name
+        self.itemCount = itemCount
+    }
+}
+
+@Test("CompactAPIMethods generates array of all public methods")
+func testCompactAPIMethodsGeneration() async throws {
+    let expectedMethods = [
+        "getUserInfo() async throws -> TestUser",
+        "updateProfile(UpdateProfileRequest) async throws -> TestUser",
+        "createCollection(CreateCollectionRequest) async throws -> Collection"
+    ]
+
+    #expect(TestBourbonAPI.compactMethods == expectedMethods)
+}
+
+@Test("CompactAPIMethods excludes private and internal methods")
+func testCompactAPIMethodsExcludesPrivate() async throws {
+    // Verify that private and internal methods are not included
+    let methodsString = TestBourbonAPI.compactMethods.joined(separator: " ")
+    #expect(!methodsString.contains("internalMethod"))
+}
+
+// MARK: - CompactMethodRegistry Tests
+
+@Test("CompactMethodRegistry provides empty arrays initially")
+func testCompactMethodRegistryEmpty() async throws {
+    // Since we haven't implemented runtime registration yet, these should be empty
+    #expect(CompactMethodRegistry.getAllMethods().isEmpty)
+    #expect(CompactMethodRegistry.getMethodsByCategory().isEmpty)
+}
+
+// MARK: - CompactDocumentation Tests
+
+@Test("CompactDocumentation generates basic structure")
+func testCompactDocumentationStructure() async throws {
+    let documentation = CompactDocumentation.getCompleteDocumentation()
+    #expect(documentation.contains("# API Documentation"))
+    #expect(documentation.contains("## Data Models"))
+}
+
+// MARK: - Integration Tests
+
+@Test("CompactMethod and CompactSchema work together")
+func testIntegrationWithCompactSchema() async throws {
+    // Test that method signatures reference types that have @CompactSchema
+    let methodSignature = TestAPI.getUserInfoMethod
+    let schemaString = TestUser.compactSchema
+
+    // Verify that the method returns a type that has compact schema
+    #expect(methodSignature.contains("TestUser"))
+    #expect(!schemaString.isEmpty)
+}
+
+@Test("All macro generated properties are accessible")
+func testMacroGeneratedAccessibility() async throws {
+    // Test that all generated properties can be accessed without compilation errors
+    _ = TestAPI.getUserInfoMethod
+    _ = TestAPI.updateProfileMethod
+    _ = TestAPI.deleteUserMethod
+    _ = TestAPI.syncOperationMethod
+    _ = TestBourbonAPI.compactMethods
+    _ = TestUser.compactSchema
+    _ = TestStatus.compactSchema
 }
