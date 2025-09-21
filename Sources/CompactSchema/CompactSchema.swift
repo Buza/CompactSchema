@@ -2,8 +2,6 @@
 //  CompactSchema.swift
 //  CompactSchema
 //
-//  Generated with Claude Code
-//
 
 import Foundation
 
