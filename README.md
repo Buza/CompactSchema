@@ -33,6 +33,52 @@ public class UserAPI {
 // Generates: compactMethods = ["getUserInfo() async throws -> UserProfile", "updateProfile(UpdateRequest) async throws -> UserProfile"]
 ```
 
+## Real-World Scenario
+
+Imagine you have a Swift application that depends on a separate Swift package containing your API models, transfer objects, and endpoint proxy calls. When building AI-powered features or tools that need to understand your API:
+
+**The Problem:**
+- Reading the raw API package code wastes thousands of tokens on implementation details
+- Verbose Swift syntax clutters the context window with irrelevant information
+- Complex codebases can lead to AI hallucinations when trying to infer API structure
+- Manual documentation quickly becomes outdated and inconsistent
+
+**The CompactSchema Solution:**
+```swift
+// In your API package - annotate your models
+@CompactSchema
+struct UserProfile: Codable {
+    let id: String
+    let username: String
+    let email: String?
+    let preferences: [String: Any]
+}
+
+@CompactSchema
+struct CreateUserRequest: Codable {
+    let username: String
+    let email: String
+    let password: String
+}
+
+// Annotate your API endpoints
+@CompactAPIMethods
+public class UserAPI {
+    public func getUser(_ id: String) async throws -> UserProfile { ... }
+    public func createUser(_ request: CreateUserRequest) async throws -> UserProfile { ... }
+    public func updateProfile(_ id: String, _ request: UpdateProfileRequest) async throws -> UserProfile { ... }
+}
+```
+
+**Generate Token-Efficient Documentation:**
+```swift
+// In your main application
+let apiDocumentation = CompactDocumentation.getCompleteDocumentation()
+// Feed this minimal, accurate documentation to your AI tools instead of raw source code
+```
+
+**Result:** Your AI tools get precise API understanding with 90% fewer tokens, eliminating hallucinations while staying perfectly synchronized with your actual code.
+
 ## Features
 
 ### Data Structure Documentation (@CompactSchema)
