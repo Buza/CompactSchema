@@ -156,13 +156,13 @@ func testAsyncThrowsMethodSignature() async throws {
 
 @Test("CompactMethod generates correct method signature with parameters")
 func testMethodSignatureWithParameters() async throws {
-    let expectedSignature = "updateProfile(UpdateProfileRequest) async throws -> TestUser"
+    let expectedSignature = "updateProfile(_: UpdateProfileRequest) async throws -> TestUser"
     #expect(TestAPI.updateProfileMethod == expectedSignature)
 }
 
 @Test("CompactMethod generates correct method signature for Void return")
 func testVoidReturnMethodSignature() async throws {
-    let expectedSignature = "deleteUser(String)"
+    let expectedSignature = "deleteUser(_: String)"
     #expect(TestAPI.deleteUserMethod == expectedSignature)
 }
 
@@ -188,6 +188,20 @@ public class TestBourbonAPI {
         return Collection(id: 1, name: "Test", itemCount: 0)
     }
 
+    // Test method with many parameters of the same type (simulates discoverTastings scenario)
+    public func discoverTastings(
+        type: String?,
+        age: Int?,
+        proof: Double?,
+        barrelNumber: String?,
+        bottlingYear: Int?,
+        limit: Int?,
+        offset: Int?,
+        sortBy: String?
+    ) async throws -> TastingDiscoverResponse {
+        return TastingDiscoverResponse(results: [], total: 0)
+    }
+
     // This should not be included (private)
     private func internalMethod() {
         // Private implementation
@@ -196,6 +210,16 @@ public class TestBourbonAPI {
     // This should not be included (internal)
     func internalMethod2() {
         // Internal implementation
+    }
+}
+
+public struct TastingDiscoverResponse {
+    let results: [String]
+    let total: Int
+
+    public init(results: [String], total: Int) {
+        self.results = results
+        self.total = total
     }
 }
 
@@ -225,8 +249,9 @@ public struct Collection {
 func testCompactAPIMethodsGeneration() async throws {
     let expectedMethods = [
         "getUserInfo() async throws -> TestUser",
-        "updateProfile(UpdateProfileRequest) async throws -> TestUser",
-        "createCollection(CreateCollectionRequest) async throws -> Collection"
+        "updateProfile(_: UpdateProfileRequest) async throws -> TestUser",
+        "createCollection(_: CreateCollectionRequest) async throws -> Collection",
+        "discoverTastings(type: String?, age: Int?, proof: Double?, barrelNumber: String?, bottlingYear: Int?, limit: Int?, offset: Int?, sortBy: String?) async throws -> TastingDiscoverResponse"
     ]
 
     #expect(TestBourbonAPI.compactMethods == expectedMethods)
@@ -237,6 +262,32 @@ func testCompactAPIMethodsExcludesPrivate() async throws {
     // Verify that private and internal methods are not included
     let methodsString = TestBourbonAPI.compactMethods.joined(separator: " ")
     #expect(!methodsString.contains("internalMethod"))
+}
+
+@Test("CompactAPIMethods preserves parameter labels for multi-parameter methods")
+func testParameterLabelsPreserved() async throws {
+    // This test addresses the critical issue: methods with many parameters of the same type
+    // need parameter labels to distinguish which parameter is which
+    let discoverTastingsSignature = TestBourbonAPI.compactMethods.first { $0.contains("discoverTastings") }
+
+    // Verify the signature exists
+    #expect(discoverTastingsSignature != nil)
+
+    if let signature = discoverTastingsSignature {
+        // Verify all parameter labels are present
+        #expect(signature.contains("type:"))
+        #expect(signature.contains("age:"))
+        #expect(signature.contains("proof:"))
+        #expect(signature.contains("barrelNumber:"))
+        #expect(signature.contains("bottlingYear:"))
+        #expect(signature.contains("limit:"))
+        #expect(signature.contains("offset:"))
+        #expect(signature.contains("sortBy:"))
+
+        // Verify the complete signature format
+        let expected = "discoverTastings(type: String?, age: Int?, proof: Double?, barrelNumber: String?, bottlingYear: Int?, limit: Int?, offset: Int?, sortBy: String?) async throws -> TastingDiscoverResponse"
+        #expect(signature == expected)
+    }
 }
 
 // MARK: - CompactMethodRegistry Tests

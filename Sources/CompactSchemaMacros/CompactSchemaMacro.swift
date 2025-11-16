@@ -280,12 +280,24 @@ struct MethodSignatureGenerator {
         var parameters: [String] = []
 
         for parameter in parameterClause.parameters {
-            // For compact representation, we'll include the type but simplify parameter labels
             let parameterType = parameter.type.description.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Use simplified parameter representation: just the type for most cases
-            // This achieves maximum token compression while maintaining clarity
-            parameters.append(parameterType)
+            // Extract parameter label (external name shown in call site)
+            let firstName = parameter.firstName.text
+
+            // Determine the label to use
+            let parameterString: String
+            if firstName == "_" {
+                // Unnamed parameter (e.g., func foo(_ bar: String))
+                // Show as "_: Type" to indicate it's positional
+                parameterString = "_: \(parameterType)"
+            } else {
+                // Named parameter - show the external label
+                // This is what callers see: func foo(label: Type)
+                parameterString = "\(firstName): \(parameterType)"
+            }
+
+            parameters.append(parameterString)
         }
 
         return parameters
